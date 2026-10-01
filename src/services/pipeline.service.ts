@@ -12,6 +12,7 @@ import { ArticleWriterService } from './article-writer.service.js';
 import { MCQGeneratorService } from './mcq-generator.service.js';
 import { FAQGeneratorService } from './faq-generator.service.js';
 import { SeoEngineService } from './seo-engine.service.js';
+import { AeoEngineService } from './aeo-engine.service.js';
 import { InternalLinkerService } from './internal-linker.service.js';
 import { TaxonomyService } from './taxonomy.service.js';
 import { ImageGeneratorService } from './image-generator.service.js';
@@ -21,6 +22,7 @@ import { RegenerationService } from './regeneration.service.js';
 import { markdownToHtml } from '../utils/markdown-parser.js';
 import { estimateReadingTime } from '../utils/text-cleaner.js';
 import { PipelineOptions, PipelineExecutionResult, PipelineStage } from '../types/pipeline.js';
+import { ContentPackageV1, QAStatus } from '../types/content-package.js';
 import { BlogDocument } from '../types/blog.js';
 import { BlogResearchDocument } from '../types/research.js';
 import { ENV } from '../config/env.config.js';
@@ -41,6 +43,7 @@ export class BlogAutomationPipeline {
   private mcqGenerator: MCQGeneratorService;
   private faqGenerator: FAQGeneratorService;
   private seoEngine: SeoEngineService;
+  private aeoEngine: AeoEngineService;
   private internalLinker: InternalLinkerService;
   private taxonomyService: TaxonomyService;
   private imageGenerator: ImageGeneratorService;
@@ -62,6 +65,7 @@ export class BlogAutomationPipeline {
     this.mcqGenerator = new MCQGeneratorService();
     this.faqGenerator = new FAQGeneratorService();
     this.seoEngine = new SeoEngineService();
+    this.aeoEngine = new AeoEngineService();
     this.internalLinker = new InternalLinkerService(this.blogRepo);
     this.taxonomyService = new TaxonomyService(this.categoryRepo, this.tagRepo);
     this.imageGenerator = new ImageGeneratorService(this.mediaRepo);
@@ -81,7 +85,7 @@ export class BlogAutomationPipeline {
 
   async runPipeline(options: PipelineOptions): Promise<PipelineExecutionResult> {
     const startTime = Date.now();
-    const dryRun = options.dryRun || ENV.BLOG_AUTOMATION_DRY_RUN;
+    const dryRun = options.dryRun !== undefined ? options.dryRun : true; // Default safe dry-run
     let stage: PipelineStage = 'INITIALIZING';
 
     logger.info(`=======================================================`);
@@ -93,15 +97,17 @@ export class BlogAutomationPipeline {
       stage = 'DISCOVERING';
       let selectedTopic = options.topic;
       let articleType = options.articleType || 'RAJASTHAN_GK';
+      let categorySuggestion = options.category || 'Rajasthan GK';
 
       if (!selectedTopic) {
-        const candidates = await this.topicDiscovery.discoverTrendingTopics();
+        const candidates = await this.topicDiscovery.discoverTrendingTopics({ count: 1 });
         if (candidates.length === 0) {
           throw new Error('No valid topic candidate discovered.');
         }
         const topCandidate = candidates[0];
         selectedTopic = topCandidate.topic;
         articleType = topCandidate.articleType;
+        categorySuggestion = topCandidate.categorySuggestion;
         logger.info(`Autonomous discovery selected: "${selectedTopic}" (Score: ${topCandidate.score})`);
       } else {
         logger.info(`Manual topic provided: "${selectedTopic}"`);
@@ -126,11 +132,19 @@ export class BlogAutomationPipeline {
         internalLinks: liveInternalLinks,
       });
 
-      // Step 5: MCQs and FAQs Generation
+      // Step 5: AEO (Answer Engine Optimization) Generation
+      stage = 'AEO';
+      const aeoBlock = this.aeoEngine.generateAeoBlock(
+        selectedTopic,
+        articleType,
+        factVerification.verifiedClaims
+      );
+
+      // Step 6: MCQs and FAQs Generation
       const mcqs = this.mcqGenerator.generateMCQs(selectedTopic, factVerification.verifiedClaims, 5);
       const faqs = this.faqGenerator.generateFAQs(selectedTopic, 4);
 
-      // Step 6: Article Generation
+      // Step 7: Article Generation
       stage = 'WRITING';
       const writeResult = await this.articleWriter.generateArticle({
         topic: selectedTopic,
@@ -142,23 +156,28 @@ export class BlogAutomationPipeline {
         faqs,
       });
 
-      // Step 7: Taxonomy Resolution (Category & Tags)
+      // Step 8: Taxonomy Resolution (Category & Tags)
       stage = 'TAXONOMY';
       let taxonomyResult = {
         categoryId: null as any,
-        categoryName: 'Rajasthan GK',
+        categoryName: categorySuggestion,
         tagIds: [] as any[],
         tagNames: [] as string[],
       };
 
       if (!dryRun) {
-        taxonomyResult = await this.taxonomyService.resolveTaxonomy(selectedTopic, articleType, options.category);
+        try {
+          taxonomyResult = await this.taxonomyService.resolveTaxonomy(selectedTopic, articleType, options.category);
+        } catch {
+          taxonomyResult.categoryName = options.category || categorySuggestion;
+          taxonomyResult.tagNames = ['Rajasthan GK', 'Exam Twister Study Material'];
+        }
       } else {
-        taxonomyResult.categoryName = options.category || 'Rajasthan GK';
+        taxonomyResult.categoryName = options.category || categorySuggestion;
         taxonomyResult.tagNames = ['Rajasthan GK', 'Exam Twister Study Material'];
       }
 
-      // Step 8: Featured Image Processing
+      // Step 9: Featured Image Processing
       stage = 'IMAGE_GENERATION';
       const imageResult = await this.imageGenerator.processFeaturedImage(
         selectedTopic,
@@ -166,7 +185,7 @@ export class BlogAutomationPipeline {
         taxonomyResult.categoryName
       );
 
-      // Step 9: Rich HTML Conversion & Excerpt
+      // Step 10: Rich HTML Conversion & Excerpt
       const htmlContent = markdownToHtml(writeResult.cleanedMarkdown);
       const readingTime = estimateReadingTime(writeResult.cleanedMarkdown);
       const excerpt = `${selectedTopic} के सम्पूर्ण प्रामाणिक तथ्य, तुलनात्मक सारणी, विगत परीक्षा प्रश्न एवं विस्तृत नोट्स। राजस्थान RPSC, RSSB, CET व REET परीक्षा की तैयारी हेतु विशेष सामग्री।`;
@@ -199,7 +218,7 @@ export class BlogAutomationPipeline {
         updatedAt: new Date(),
       };
 
-      // Step 10: Editorial QA Gate
+      // Step 11: Editorial QA Gate
       stage = 'EDITORIAL_QA';
       const researchDocSummary: Partial<BlogResearchDocument> = {
         topic: selectedTopic,
@@ -212,6 +231,73 @@ export class BlogAutomationPipeline {
 
       const qaReport = this.editorialQA.runQA(blogDraft, researchDocSummary);
 
+      let qaStatus: QAStatus = 'PASS';
+      if (qaReport.hasHardBlocks) {
+        qaStatus = 'FAIL';
+      } else if (qaReport.score < 75) {
+        qaStatus = 'HOLD';
+      } else if (qaReport.warnings.length > 0) {
+        qaStatus = 'WARNING';
+      }
+
+      // Step 12: Content Package Assembly (v1.0 Standard Contract)
+      stage = 'PACKAGING';
+      const contentPackage: ContentPackageV1 = {
+        version: '1.0',
+        topic: selectedTopic,
+        articleType,
+        classification: options.classification || 'CREATE_NEW',
+        article: {
+          title: selectedTopic,
+          slug: seoBrief.suggestedSlug,
+          excerpt,
+          content: htmlContent,
+          wordCount: writeResult.wordCount,
+          readingTime,
+          categorySuggestion: taxonomyResult.categoryName,
+          tags: taxonomyResult.tagNames,
+        },
+        seo: {
+          title: seoBrief.metaTitle,
+          metaDescription: seoBrief.metaDescription,
+          primaryKeyword: seoBrief.primaryKeyword,
+          secondaryKeywords: seoBrief.secondaryKeywords,
+          searchIntent: seoBrief.searchIntent,
+          canonicalPath: `/blogs/${seoBrief.suggestedSlug}`,
+        },
+        aeo: aeoBlock,
+        faq: faqs,
+        mcqs,
+        sources: researchData.sources,
+        internalLinks: seoBrief.internalLinks,
+        image: {
+          prompt: imageResult.prompt.visualConcept,
+          altText: imageResult.prompt.altText,
+          width: 1200,
+          height: 630,
+          visualConcept: imageResult.prompt.visualConcept,
+        },
+        research: {
+          verifiedClaims: factVerification.verifiedClaims,
+          uncertainClaims: factVerification.uncertainClaims,
+          conflictingClaims: factVerification.conflicts,
+          overallFactualConfidence: factVerification.overallFactualConfidence,
+        },
+        qa: {
+          status: qaStatus,
+          score: qaReport.score,
+          passed: qaReport.passed,
+          hardBlocks: qaReport.hardBlocks.map((b) => b.message),
+          warnings: qaReport.warnings.map((w) => w.message),
+        },
+        timestamps: {
+          generatedAt: new Date().toISOString(),
+          lastVerifiedAt: new Date().toISOString(),
+          requiresRecheck: articleType === 'CURRENT_AFFAIRS' || articleType === 'EXAM_UPDATE',
+          eventDate: new Date().toISOString().split('T')[0],
+        },
+      };
+
       if (qaReport.hasHardBlocks) {
         logger.error(`Editorial QA failed with ${qaReport.hardBlocks.length} hard blocks.`);
         return {
@@ -221,6 +307,8 @@ export class BlogAutomationPipeline {
           blogDraft,
           qaReport,
           imageResult,
+          aeoBlock,
+          contentPackage,
           errors: qaReport.hardBlocks.map((b) => b.message),
           warnings: qaReport.warnings.map((w) => w.message),
           dryRun,
@@ -228,35 +316,38 @@ export class BlogAutomationPipeline {
         };
       }
 
-      // Step 11: CMS Storage (unless Dry Run)
+      // Step 13: Optional CMS Storage (if MongoDB is connected and not dryRun)
       stage = 'CMS_SAVING';
       let savedBlog: BlogDocument = blogDraft;
       let savedResearch: BlogResearchDocument | undefined;
 
       if (!dryRun) {
-        savedBlog = await this.blogRepo.createDraft(blogDraft);
-        savedResearch = await this.researchRepo.saveResearch({
-          blogId: savedBlog._id,
-          topic: selectedTopic,
-          articleType,
-          researchDate: new Date(),
-          sources: researchData.sources,
-          verifiedClaims: factVerification.verifiedClaims,
-          uncertainClaims: factVerification.uncertainClaims,
-          conflicts: factVerification.conflicts,
-          seoBrief,
-          generatedBy: 'Antigravity AI Automation Engine',
-          model: 'Built-in Native Antigravity Generator',
-        });
-        logger.info(`Saved draft in CMS with Blog ID: ${savedBlog._id} and Research ID: ${savedResearch._id}`);
-      } else {
-        logger.info(`[DRY RUN ACTIVE] Draft verified and generated without writing to MongoDB.`);
+        try {
+          savedBlog = await this.blogRepo.createDraft(blogDraft);
+          savedResearch = await this.researchRepo.saveResearch({
+            blogId: savedBlog._id,
+            topic: selectedTopic,
+            articleType,
+            researchDate: new Date(),
+            sources: researchData.sources,
+            verifiedClaims: factVerification.verifiedClaims,
+            uncertainClaims: factVerification.uncertainClaims,
+            conflicts: factVerification.conflicts,
+            seoBrief,
+            generatedBy: 'Antigravity AI Automation Engine',
+            model: 'Native Antigravity Content Engine',
+          });
+          contentPackage.id = savedBlog._id?.toString();
+          logger.info(`Saved draft in CMS with Blog ID: ${savedBlog._id}`);
+        } catch (dbErr: any) {
+          logger.warn(`MongoDB write skipped (${dbErr?.message}). Content Package is preserved in memory/file export.`);
+        }
       }
 
       stage = 'COMPLETED';
       logger.info(`=======================================================`);
       logger.info(`Pipeline Completed Successfully for "${selectedTopic}" in ${Date.now() - startTime}ms`);
-      logger.info(`Status: DRAFT (Awaiting Human Review) | QA Score: ${qaReport.score}/100`);
+      logger.info(`Status: DRAFT (QA Status: ${qaStatus} | Score: ${qaReport.score}/100)`);
       logger.info(`=======================================================`);
 
       return {
@@ -267,6 +358,8 @@ export class BlogAutomationPipeline {
         research: savedResearch || (researchDocSummary as any),
         qaReport,
         imageResult,
+        aeoBlock,
+        contentPackage,
         warnings: qaReport.warnings.map((w) => w.message),
         dryRun,
         durationMs: Date.now() - startTime,

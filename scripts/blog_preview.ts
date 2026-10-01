@@ -153,6 +153,27 @@ function renderFullHtmlPage(result: any): string {
         </div>
       </div>
 
+      <!-- AEO (Answer Engine Optimization) Direct Answer Card -->
+      ${result.aeoBlock ? `
+      <div class="glass-card p-6 rounded-2xl border-l-4 border-amber-500 bg-slate-900/90 shadow-xl space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            ⚡ AEO DIRECT ANSWER (त्वरित प्रामाणिक उत्तर)
+          </span>
+          <span class="text-xs text-slate-400 font-mono">Google SGE & AI Overviews Ready</span>
+        </div>
+        <p class="text-base text-white font-medium leading-relaxed bg-amber-950/20 p-4 rounded-xl border border-amber-500/20">
+          ${result.aeoBlock.directAnswer}
+        </p>
+        <div class="space-y-2 pt-2 border-t border-slate-800">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">🔑 मुख्य संस्थाएं एवं संकल्पनाएं (Entities):</span>
+          <div class="flex flex-wrap gap-1.5">
+            ${result.aeoBlock.entities.map((e: string) => `<span class="px-2.5 py-1 rounded-lg text-xs bg-slate-800 text-amber-200 border border-slate-700">${e}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+      ` : ''}
+
       <!-- Article Rich Content Body -->
       <div class="glass-card p-6 sm:p-10 rounded-2xl prose prose-invert max-w-none text-slate-300 space-y-6">
         ${draft.content}

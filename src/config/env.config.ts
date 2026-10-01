@@ -23,5 +23,5 @@ export const ENV = {
   DEFAULT_AUTHOR_NAME: process.env.DEFAULT_AUTHOR_NAME || 'Rajasthan Exam Twister Editorial Team',
 
   // Site
-  SITE_BASE_URL: process.env.SITE_BASE_URL || 'https://rajasthanexamtwister.com',
+  SITE_BASE_URL: process.env.SITE_BASE_URL || 'https://rajasthanexamtwister.in',
 };
