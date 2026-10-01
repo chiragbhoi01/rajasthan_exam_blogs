@@ -22,7 +22,6 @@
     "blog:auto-daily": "tsx scripts/daily_blog_runner.ts",
     "blog:ping": "tsx scripts/ping_indexing.ts",
     "blog:check-updates": "tsx scripts/check_exam_updates.ts",
-    "blog:suvichar": "tsx scripts/generate_suvichar.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
