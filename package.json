@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Autonomous AI Blog Research, Content Generation, Fact Verification, SEO, Image & CMS Draft Automation for Rajasthan Exam Twister",
+  "type": "module",
   "main": "src/services/pipeline.service.ts",
   "scripts": {
     "blog:generate": "tsx scripts/blog_generate.ts",
