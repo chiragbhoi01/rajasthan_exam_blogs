@@ -126,6 +126,33 @@ export class ResearchEngineService {
           primarySourceUrl: 'https://rsmssb.rajasthan.gov.in/notifications',
         }
       );
+    } else if (topic.includes('विद्या संबल') || topic.includes('Vidya Sambal')) {
+      extractedClaims.push(
+        {
+          claim: 'राजस्थान सरकार द्वारा सरकारी शिक्षण संस्थानों में रिक्त पदों पर सुचारू अध्यापन हेतु विद्या संबल योजना के तहत गेस्ट फैकल्टी की नियुक्ति की जाती है।',
+          category: 'SCHEME',
+          status: 'VERIFIED',
+          primarySourceUrl: 'https://education.rajasthan.gov.in',
+        },
+        {
+          claim: 'विद्या संबल योजना के तहत विद्यालय स्तर पर अध्यापक लेवल-1 व 2 को ₹300/घंटा (अधिकतम ₹21,000), वरिष्ठ अध्यापक को ₹350/घंटा (अधिकतम ₹25,000) तथा व्याख्याता को ₹400/घंटा (अधिकतम ₹30,000) मानदेय दिया जाता है।',
+          category: 'NUMBER',
+          status: 'VERIFIED',
+          primarySourceUrl: 'https://dipr.rajasthan.gov.in',
+        },
+        {
+          claim: 'कॉलेज शिक्षा विभाग में सहायक आचार्य को ₹800/घंटा (अधिकतम ₹45,000), सह आचार्य को ₹1000/घंटा (अधिकतम ₹52,000) तथा आचार्य को ₹1200/घंटा (अधिकतम ₹60,000) मानदेय दिया जाता है।',
+          category: 'NUMBER',
+          status: 'VERIFIED',
+          primarySourceUrl: 'https://hte.rajasthan.gov.in',
+        },
+        {
+          claim: 'विद्या संबल योजना में अभ्यर्थियों का चयन बिना लिखित परीक्षा के शैक्षणिक (75%) एवं प्रशैक्षणिक (25%) योग्यता के प्राप्तांकों की मेरिट के आधार पर होता है।',
+          category: 'ELIGIBILITY',
+          status: 'VERIFIED',
+          primarySourceUrl: 'https://education.rajasthan.gov.in',
+        }
+      );
     } else {
       extractedClaims.push(
         {

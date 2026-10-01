@@ -17,6 +17,12 @@
     "blog:preview": "tsx scripts/blog_preview.ts",
     "blog:batch": "tsx scripts/blog_batch.ts",
     "blog:export": "tsx scripts/blog_export.ts",
+    "blog:publish": "tsx scripts/publish_blogs.ts",
+    "blog:list": "tsx scripts/list_db_blogs.ts",
+    "blog:auto-daily": "tsx scripts/daily_blog_runner.ts",
+    "blog:ping": "tsx scripts/ping_indexing.ts",
+    "blog:check-updates": "tsx scripts/check_exam_updates.ts",
+    "blog:suvichar": "tsx scripts/generate_suvichar.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

@@ -100,7 +100,15 @@ export class BlogAutomationPipeline {
       let categorySuggestion = options.category || 'Rajasthan GK';
 
       if (!selectedTopic) {
-        const candidates = await this.topicDiscovery.discoverTrendingTopics({ count: 1 });
+        let existingTitles: string[] = [];
+        try {
+          const existingBlogs = await this.blogRepo.getAllBlogs();
+          existingTitles = existingBlogs.flatMap((b) => [b.title, b.slug]);
+        } catch {
+          // ignore DB fetch errors in dry-run/disconnected mode
+        }
+
+        const candidates = await this.topicDiscovery.discoverTrendingTopics({ count: 1, existingTitles });
         if (candidates.length === 0) {
           throw new Error('No valid topic candidate discovered.');
         }

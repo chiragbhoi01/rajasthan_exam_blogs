@@ -1,6 +1,15 @@
 import { MongoClient, Db } from 'mongodb';
+import dns from 'node:dns';
 import { ENV } from '../config/env.config.js';
 import { logger } from './logger.js';
+
+// Fix for Windows DNS resolution for MongoDB Atlas mongodb+srv URIs
+try {
+  dns.setDefaultResultOrder('ipv4first');
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch {
+  // ignore
+}
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
@@ -10,8 +19,8 @@ export async function getDb(): Promise<Db> {
 
   try {
     client = new MongoClient(ENV.MONGODB_URI, {
-      serverSelectionTimeoutMS: 2000,
-      connectTimeoutMS: 2000,
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
     });
     await client.connect();
     db = client.db(ENV.MONGODB_DB_NAME);

@@ -1,0 +1,64 @@
+name: Daily Autonomous Rajasthan Exam Blog Publisher
+
+on:
+  schedule:
+    # Runs at 01:30 UTC every day (7:00 AM IST)
+    - cron: '30 1 * * *'
+  workflow_dispatch:
+    # Allows manual one-click trigger from GitHub Actions tab
+
+jobs:
+  auto-publish-blog:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Autonomous Daily Blog Engine
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MONGODB_DB_NAME: ${{ secrets.MONGODB_DB_NAME || 'rajasthan_exam_twister' }}
+          CLOUDINARY_URL: ${{ secrets.CLOUDINARY_URL }}
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          SITE_BASE_URL: ${{ secrets.SITE_BASE_URL || 'https://rajasthanexamtwister.in' }}
+          BLOG_AUTOMATION_ENABLED: 'true'
+          BLOG_AUTOMATION_DRY_RUN: 'false'
+        run: npm run blog:auto-daily
+
+      - name: Check Live RPSC & RSSB Official Exam Updates
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MONGODB_DB_NAME: ${{ secrets.MONGODB_DB_NAME || 'rajasthan_exam_twister' }}
+          CLOUDINARY_URL: ${{ secrets.CLOUDINARY_URL }}
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          SITE_BASE_URL: ${{ secrets.SITE_BASE_URL || 'https://rajasthanexamtwister.in' }}
+          BLOG_AUTOMATION_ENABLED: 'true'
+          BLOG_AUTOMATION_DRY_RUN: 'false'
+        run: npm run blog:check-updates
+
+      - name: Generate & Post Daily Suvichar to X (Twitter)
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          TWITTER_ACCESS_SECRET: ${{ secrets.TWITTER_ACCESS_SECRET }}
+          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+          TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+          SITE_BASE_URL: ${{ secrets.SITE_BASE_URL || 'https://rajasthanexamtwister.in' }}
+        run: npm run blog:suvichar

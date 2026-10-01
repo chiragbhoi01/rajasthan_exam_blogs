@@ -101,4 +101,9 @@ export class BlogRepository {
     const query = status ? { status } : {};
     return col.find(query).sort({ createdAt: -1 }).limit(limit).toArray();
   }
+
+  async getAllBlogs(): Promise<BlogDocument[]> {
+    const col = await this.getCollection();
+    return col.find({}).toArray();
+  }
 }
