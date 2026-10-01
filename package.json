@@ -1,0 +1,31 @@
+{
+  "name": "rajasthan-exam-blogs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Autonomous AI Blog Research, Content Generation, Fact Verification, SEO, Image & CMS Draft Automation for Rajasthan Exam Twister",
+  "main": "src/services/pipeline.service.ts",
+  "scripts": {
+    "blog:generate": "tsx scripts/blog_generate.ts",
+    "blog:full": "tsx scripts/blog_generate.ts",
+    "blog:research": "tsx scripts/blog_research.ts",
+    "blog:discover": "tsx scripts/blog_discover.ts",
+    "blog:qa": "tsx scripts/blog_qa.ts",
+    "blog:image": "tsx scripts/blog_image.ts",
+    "blog:regenerate": "tsx scripts/blog_regenerate.ts",
+    "blog:dry-run": "tsx scripts/blog_dry_run.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "cloudinary": "^2.11.0",
+    "dotenv": "^16.4.5",
+    "mongodb": "^6.8.0",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4",
+    "vitest": "^1.6.0"
+  }
+}
